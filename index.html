@@ -1955,6 +1955,33 @@ speechSynthesis.onvoiceschanged =
 
   };
 
+let speechPulse = 0;
+let speechPulseActive = false;
+
+function animateSpeechPulse(){
+  if(!speechPulseActive){
+    return;
+  }
+
+  const time = performance.now();
+
+  const wave =
+    Math.abs(
+      Math.sin(time / 90)
+      );
+
+  const randomPulse =
+    Math.random() * 0.35;
+
+    targetLevel =
+      0.25 +
+      wave * 0.45 +
+      randomPulse;
+
+  requestAnimationFrame(
+    animateSpeechPulse
+  );
+}
 
 function speak(text){
 
@@ -1987,6 +2014,8 @@ function speak(text){
     'RESPONDING'
   );
 
+  speechPulseActive = true;
+  animateSpeechPulse();
 
   const utter =
     new SpeechSynthesisUtterance(
@@ -2035,6 +2064,9 @@ function speak(text){
   utter.onend =
     () => {
 
+      speechPulseActive = false;
+      targetLevel = 0;
+
       setMode(
         'idle'
       );
@@ -2066,6 +2098,9 @@ function speak(text){
 
   utter.onerror =
     () => {
+
+      speechPulseActive = false;
+      targetLevel = 0;
 
       setMode(
         'idle'
