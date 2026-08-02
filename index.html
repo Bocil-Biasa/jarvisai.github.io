@@ -86,10 +86,6 @@
 
       </div>
 
-      <div id="keyHint">
-        API key is cached locally in this browser.
-      </div>
-
       <div id="keyStatus">
         No key loaded.
       </div>
@@ -100,10 +96,6 @@
     <!-- LISTENING MODE -->
 
     <div class="field">
-
-      <div class="modeTitle">
-        Listening Mode
-      </div>
 
       <div id="modeDescription" class="modeDescription">
         J.A.R.V.I.S keeps listening after each response.
@@ -132,6 +124,28 @@
 
 
 <script>
+window.addEventListener('error', (e) => {
+  document.getElementById('status').textContent =
+    'JS ERROR: ' + e.message;
+
+  console.error(
+    'JARVIS ERROR:',
+    e.message,
+    e.filename,
+    e.lineno,
+    e.colno
+  );
+});
+
+window.addEventListener('unhandledrejection', (e) => {
+  document.getElementById('status').textContent =
+    'PROMISE ERROR';
+
+  console.error(
+    'JARVIS PROMISE ERROR:',
+    e.reason
+  );
+});
 
 /* ============================================================
    CANVAS SYSTEM
@@ -1590,7 +1604,6 @@ function getJarvisVoice(){
 
 }
 
-
 speechSynthesis.onvoiceschanged =
   () => {
 
@@ -1961,7 +1974,7 @@ async function handleQuery(
 
     addAiLine(msg);
 
-    (msg);
+    speak(msg);
 
     processingQuery =
       false;
