@@ -1188,50 +1188,16 @@ if(SR){
 
     recognizing = false;
 
-
-    if(
-      mode === 'listening'
-    ){
-
+    if(mode === 'listening'){
       setMode('idle');
-
-      setStatus(
-        'STANDBY'
-      );
-
+      setStatus('STANDBY');
     }
 
-
-    /*
-      Automatic mode automatically
-      opens the microphone again.
-
-      Manual mode never does this.
-    */
-
-    if(
-      listeningMode === 'auto' &&
-      !suppressRestart &&
-      !processingQuery
-    ){
-
+    if(!processingQuery){
       setTimeout(
-        () => {
-
-          if(
-            listeningMode === 'auto' &&
-            !recognizing &&
-            !processingQuery
-          ){
-
-            startListening();
-
-          }
-
-        },
-        300
+        startListening,
+        350
       );
-
     }
 
   };
@@ -1280,12 +1246,13 @@ if(SR){
 
 
     if(
-      listeningMode === 'auto'
+      e.error !== 'not-allowed' &&
+      e.error !== 'service-not-allowed'
     ){
 
       setTimeout(
-        startListening,
-        1000
+          startListening,
+          1000
       );
 
     }
@@ -1630,40 +1597,58 @@ speechSynthesis.onvoiceschanged =
     getJarvisVoice();
 
   };
+  
 
-let speechPulse = 0;
-let speechPulseActive = false;
+/* ============================================================
+   TTS AUDIO VISUALIZER
+============================================================ */
 
-function animateSpeechPulse(){
-  if(!speechPulseActive){
+let audioCtx = null;
+let analyser = null;
+let visualizerSource = null;
+let visualizerData = null;
+
+
+function initVisualizer(){
+
+  if(audioCtx){
     return;
   }
 
-  const time = performance.now();
+  try{
 
-  const wave =
-    Math.abs(
-      Math.sin(time / 90)
+    audioCtx =
+      new (
+        window.AudioContext ||
+        window.webkitAudioContext
+      )();
+
+    analyser =
+      audioCtx.createAnalyser();
+
+    analyser.fftSize = 256;
+
+    analyser.smoothingTimeConstant = .82;
+
+    visualizerData =
+      new Uint8Array(
+        analyser.frequencyBinCount
       );
 
-  const randomPulse =
-    Math.random() * 0.35;
+  }catch(err){
 
-    targetLevel =
-      0.25 +
-      wave * 0.45 +
-      randomPulse;
+    console.warn(
+      'Audio visualizer unavailable:',
+      err
+    );
 
-  requestAnimationFrame(
-    animateSpeechPulse
-  );
+  }
+
 }
-
+  
 function speak(text){
 
-  suppressRestart =
-    true;
-
+  suppressRestart = true;
 
   if(
     recognition &&
@@ -1671,144 +1656,156 @@ function speak(text){
   ){
 
     try{
-
       recognition.stop();
-
     }catch(e){}
 
   }
 
-
   speechSynthesis.cancel();
 
+  setMode('speaking');
+  setStatus('RESPONDING');
 
-  setMode(
-    'speaking'
-  );
-
-  setStatus(
-    'RESPONDING'
-  );
-
-  speechPulseActive = true;
-  animateSpeechPulse();
 
   const utter =
-    new SpeechSynthesisUtterance(
-      text
-    );
+    new SpeechSynthesisUtterance(text);
+
+  utter.lang = 'en-GB';
+  utter.rate = .92;
+  utter.pitch = .78;
+  utter.volume = 1;
 
 
-  utter.lang =
-    'en-GB';
-
-  utter.rate =
-    .92;
-
-  utter.pitch =
-    .78;
-
-  utter.volume =
-    1;
-
-
-  const voice =
-    getJarvisVoice();
-
+  const voice = getJarvisVoice();
 
   if(voice){
 
-    utter.voice =
-      voice;
-
-    utter.lang =
-      voice.lang;
+    utter.voice = voice;
+    utter.lang = voice.lang;
 
   }
 
 
-  utter.onstart =
-    () => {
+  utter.onstart = () => {
 
-      setStatus(
-        'RESPONDING'
-      );
+    setStatus('RESPONDING');
 
-    };
+    startSpeechVisualizer();
 
-
-  utter.onend =
-    () => {
-
-      speechPulseActive = false;
-      targetLevel = 0;
-
-      setMode(
-        'idle'
-      );
-
-      setStatus(
-        'STANDBY'
-      );
-
-      processingQuery =
-        false;
-
-      suppressRestart =
-        false;
+  };
 
 
-      if(
-        listeningMode === 'auto'
-      ){
+  utter.onend = () => {
 
-        setTimeout(
-          startListening,
-          350
-        );
+    stopSpeechVisualizer();
 
-      }
+    setMode('idle');
+    setStatus('STANDBY');
 
-    };
+    processingQuery = false;
+    suppressRestart = false;
 
 
-  utter.onerror =
-    () => {
+    setTimeout(
+      startListening,
+      350
+    );
 
-      speechPulseActive = false;
-      targetLevel = 0;
-
-      setMode(
-        'idle'
-      );
-
-      setStatus(
-        'STANDBY'
-      );
-
-      processingQuery =
-        false;
-
-      suppressRestart =
-        false;
+  };
 
 
-      if(
-        listeningMode === 'auto'
-      ){
+  utter.onerror = () => {
 
-        setTimeout(
-          startListening,
-          350
-        );
+    stopSpeechVisualizer();
 
-      }
+    setMode('idle');
+    setStatus('STANDBY');
 
-    };
+    processingQuery = false;
+    suppressRestart = false;
 
 
-  speechSynthesis.speak(
-    utter
+    setTimeout(
+      startListening,
+      350
+    );
+
+  };
+
+
+  speechSynthesis.speak(utter);
+
+}
+
+let speechVisualizerActive = false;
+
+
+function startSpeechVisualizer(){
+
+  speechVisualizerActive = true;
+
+  speechVisualizerLoop();
+
+}
+
+
+function stopSpeechVisualizer(){
+
+  speechVisualizerActive = false;
+
+  targetLevel = 0;
+
+}
+
+
+function speechVisualizerLoop(){
+
+  if(!speechVisualizerActive){
+    return;
+  }
+
+
+  const now =
+    performance.now();
+
+
+  /*
+    Simulate speech energy using
+    multiple frequencies so the globe
+    doesn't look like it's breathing
+    with a metronome.
+  */
+
+  const slow =
+    Math.sin(now / 170);
+
+  const medium =
+    Math.sin(now / 73);
+
+  const fast =
+    Math.sin(now / 31);
+
+
+  const energy =
+    Math.abs(
+      slow * .45 +
+      medium * .35 +
+      fast * .20
+    );
+
+
+  const randomness =
+    Math.random() * .12;
+
+
+  targetLevel =
+    .25 +
+    energy * .55 +
+    randomness;
+
+
+  requestAnimationFrame(
+    speechVisualizerLoop
   );
 
 }
@@ -1882,9 +1879,9 @@ LANGUAGE:
 
 Default language is English.
 
-If the user clearly speaks another language or asks for another language, respond in that language.
+If the user clearly s another language or asks for another language, respond in that language.
 
-When speaking English, use natural, polished British-style phrasing where appropriate.
+When ing English, use natural, polished British-style phrasing where appropriate.
 
 Do not imitate copyrighted movie dialogue.
 
@@ -1934,7 +1931,7 @@ If the user asks about your purpose, explain that your purpose is to assist the 
 
 VOICE STYLE:
 
-Imagine speaking with a calm, refined, intelligent British assistant voice.
+Imagine ing with a calm, refined, intelligent British assistant voice.
 
 Use concise sentences.
 
@@ -1964,7 +1961,7 @@ async function handleQuery(
 
     addAiLine(msg);
 
-    speak(msg);
+    (msg);
 
     processingQuery =
       false;
@@ -2085,7 +2082,7 @@ async function handleQuery(
       errorText
     );
 
-    speak(
+    (
       errorText
     );
 
@@ -2102,15 +2099,9 @@ function initializeJarvis(){
 
   loadCachedKey();
 
+  setMode('listening');
 
-  setMode(
-    'listening'
-  );
-
-
-  setStatus(
-    'INITIALIZING'
-  );
+  setStatus('INITIALIZING');
 
 
   setTimeout(
@@ -2120,20 +2111,7 @@ function initializeJarvis(){
         'hidden'
       );
 
-
-      if(
-        listeningMode === 'auto'
-      ){
-
-        startListening();
-
-      }else{
-
-        setStatus(
-          'STANDBY'
-        );
-
-      }
+      startListening();
 
     },
     900
@@ -2141,7 +2119,7 @@ function initializeJarvis(){
 
 }
 
-
+  
 window.addEventListener(
   'load',
   initializeJarvis
