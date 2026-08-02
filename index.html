@@ -1195,7 +1195,11 @@ function setListeningMode(modeName){
     modeName === 'manual'
   );
 
-
+  micBtn.style.display =
+    modeName === 'manual'
+      ? 'flex'
+      : 'none';
+  
   if(
     modeName === 'auto'
   ){
