@@ -31,7 +31,7 @@
       <i class="fa-solid fa-gear"></i>
     </div>
 
-    <b>J . A . R . V . I . S</b>
+    <b>J.A.R.V.I.S</b>
   </header>
 
 
@@ -51,14 +51,6 @@
   <div id="transcript"></div>
 
 </div>
-
-
-<!-- ================= MICROPHONE ================= -->
-
-<div id="mic" title="Talk">
-  <i class="fa-solid fa-microphone"></i>
-</div>
-
 
 <!-- ================= SETTINGS ================= -->
 
@@ -90,7 +82,7 @@
           aria-label="Show or hide API key"
         >
           <i class="fa-solid fa-eye"></i>
-        </button>
+		</button>
 
       </div>
 
@@ -113,30 +105,8 @@
         Listening Mode
       </div>
 
-      <div class="modeSwitch">
-
-        <button
-          id="autoMode"
-          class="modeBtn active"
-          type="button"
-        >
-          <i class="fa-solid fa-wave-square"></i>
-          AUTOMATIC
-        </button>
-
-        <button
-          id="manualMode"
-          class="modeBtn"
-          type="button"
-        >
-          <i class="fa-solid fa-hand-pointer"></i>
-          PUSH TO TALK
-        </button>
-
-      </div>
-
       <div id="modeDescription" class="modeDescription">
-        Automatic mode: J.A.R.V.I.S. keeps listening after each response.
+        J.A.R.V.I.S keeps listening after each response.
       </div>
 
     </div>
@@ -899,15 +869,6 @@ const keyStatus =
 const startup =
   document.getElementById('startup');
 
-const micBtn =
-  document.getElementById('mic');
-
-const autoModeBtn =
-  document.getElementById('autoMode');
-
-const manualModeBtn =
-  document.getElementById('manualMode');
-
 const modeDescription =
   document.getElementById('modeDescription');
 
@@ -1154,11 +1115,7 @@ saveKeyBtn.addEventListener(
       setTimeout(
         () => {
 
-          if(
-            listeningMode === 'auto'
-          ){
-            startListening();
-          }
+          startListening();
 
         },
         500
@@ -1169,74 +1126,7 @@ saveKeyBtn.addEventListener(
   }
 );
 
-
-/* ============================================================
-   LISTENING MODE
-============================================================ */
-
-let listeningMode =
-  'auto';
-
-
-function setListeningMode(modeName){
-
-  listeningMode =
-    modeName;
-
-
-  autoModeBtn.classList.toggle(
-    'active',
-    modeName === 'auto'
-  );
-
-
-  manualModeBtn.classList.toggle(
-    'active',
-    modeName === 'manual'
-  );
-
-  micBtn.style.display =
-    modeName === 'manual'
-      ? 'flex'
-      : 'none';
-  
-  if(
-    modeName === 'auto'
-  ){
-
-    modeDescription.textContent =
-      'Automatic mode: J.A.R.V.I.S. continuously listens and resumes listening after each response.';
-
-    if(!recognizing){
-      startListening();
-    }
-
-  }else{
-
-    modeDescription.textContent =
-      'Push to Talk: press and hold the microphone while speaking. Release to stop.';
-
-    stopListening();
-
-  }
-
-}
-
-
-autoModeBtn.addEventListener(
-  'click',
-  () =>
-    setListeningMode('auto')
-);
-
-
-manualModeBtn.addEventListener(
-  'click',
-  () =>
-    setListeningMode('manual')
-);
-
-
+	
 /* ============================================================
    SPEECH RECOGNITION
 ============================================================ */
@@ -1290,9 +1180,6 @@ if(SR){
       'LISTENING'
     );
 
-    micBtn.classList.add(
-      'listening'
-    );
 
   };
 
@@ -1300,10 +1187,6 @@ if(SR){
   recognition.onend = () => {
 
     recognizing = false;
-
-    micBtn.classList.remove(
-      'listening'
-    );
 
 
     if(
@@ -1362,12 +1245,7 @@ if(SR){
     );
 
 
-    recognizing = false;
-
-    micBtn.classList.remove(
-      'listening'
-    );
-
+    recognizing = false
 
     if(
       e.error === 'aborted'
@@ -1619,16 +1497,6 @@ function startListening(){
 
 
   if(
-    listeningMode !== 'auto' &&
-    !manualPressing
-  ){
-
-    return;
-
-  }
-
-
-  if(
     recognizing ||
     processingQuery
   ){
@@ -1678,200 +1546,8 @@ function stopListening(){
 
   }
 
-
-  micBtn.classList.remove(
-    'listening'
-  );
-
 }
-
-
-/* ============================================================
-   MANUAL PUSH TO TALK
-============================================================ */
-
-let manualPressing =
-  false;
-
-
-function manualStart(){
-
-  if(
-    listeningMode !== 'manual'
-  ){
-
-    return;
-
-  }
-
-
-  manualPressing =
-    true;
-
-  micBtn.classList.add(
-    'manual-active'
-  );
-
-
-  if(
-    recognition &&
-    recognizing
-  ){
-
-    return;
-
-  }
-
-
-  suppressRestart =
-    true;
-
-
-  try{
-
-    recognition.start();
-
-  }catch(e){}
-
-}
-
-
-function manualStop(){
-
-  if(
-    listeningMode !== 'manual'
-  ){
-
-    return;
-
-  }
-
-
-  manualPressing =
-    false;
-
-  micBtn.classList.remove(
-    'manual-active'
-  );
-
-
-  stopListening();
-
-}
-
-
-/*
-  Pointer events work on both
-  touchscreen and desktop.
-*/
-
-micBtn.addEventListener(
-  'pointerdown',
-  e => {
-
-    if(
-      listeningMode === 'manual'
-    ){
-
-      e.preventDefault();
-
-      manualStart();
-
-    }
-
-  }
-);
-
-
-micBtn.addEventListener(
-  'pointerup',
-  e => {
-
-    if(
-      listeningMode === 'manual'
-    ){
-
-      e.preventDefault();
-
-      manualStop();
-
-    }
-
-  }
-);
-
-
-micBtn.addEventListener(
-  'pointercancel',
-  () => {
-
-    if(
-      listeningMode === 'manual'
-    ){
-
-      manualStop();
-
-    }
-
-  }
-);
-
-
-micBtn.addEventListener(
-  'pointerleave',
-  e => {
-
-    if(
-      listeningMode === 'manual' &&
-      manualPressing
-    ){
-
-      /*
-        On desktop, leaving the button
-        while holding it stops recording.
-      */
-
-      manualStop();
-
-    }
-
-  }
-);
-
-
-/*
-  In automatic mode, tapping the mic
-  can manually restart listening.
-*/
-
-micBtn.addEventListener(
-  'click',
-  () => {
-
-    if(
-      listeningMode !== 'auto'
-    ){
-
-      return;
-
-    }
-
-
-    if(
-      recognizing
-    ){
-
-      stopListening();
-
-    }else{
-
-      startListening();
-
-    }
-
-  }
-);
-
+	
 
 /* ============================================================
    TTS
@@ -2144,7 +1820,7 @@ function speak(text){
 
 const JARVIS_SYSTEM_PROMPT = `
 
-You are J.A.R.V.I.S., an advanced personal artificial intelligence system.
+You are J.A.R.V.I.S, an advanced personal artificial intelligence system.
 
 IDENTITY:
 
